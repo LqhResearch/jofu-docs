@@ -5,25 +5,32 @@ export async function fetchGitHubMarkdown(path: string) {
     const { githubRepo, docsPath, branchName, githubToken } = siteConfig;
 
     const match = githubRepo.match(/github\.com\/([^/]+)\/([^/]+)/);
-    if (!match) throw new Error('Invalid GitHub repository URL in siteConfig');
+    if (!match) {
+        throw new Error(`Invalid GitHub repository URL: ${githubRepo}`);
+    }
 
     const [, owner, repo] = match;
     const basePath = docsPath ? `${docsPath}/` : '';
-
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${basePath}${path}?ref=${branchName}`;
 
-    const res = await fetch(url, {
-        headers: {
-            Authorization: githubToken ? `Bearer ${githubToken}` : '',
-            Accept: 'application/vnd.github.v3.raw',
-        },
-    });
+    try {
+        const res = await fetch(url, {
+            headers: {
+                ...(githubToken ? { Authorization: `Bearer ${githubToken}` } : {}),
+                Accept: 'application/vnd.github.v3.raw',
+            },
+        });
 
-    if (!res.ok) {
-        throw new Error(`Failed to fetch ${path} from GitHub (Status: ${res.status})`);
+        if (!res.ok) {
+            throw new Error(
+                `Failed to fetch ${path} from GitHub (Status: ${res.status} - ${res.statusText})`,
+            );
+        }
+
+        return await res.text();
+    } catch {
+        throw new Error('Error');
     }
-
-    return await res.text();
 }
 
 export async function fetchGitHubDocsTree(path: string = ''): Promise<GitHubItem[]> {

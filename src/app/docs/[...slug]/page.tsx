@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { fetchGitHubMarkdown } from '@/lib/github';
+import { parseMarkdown } from '@/lib/mdx';
 
 interface Props {
     params: Promise<{ slug?: string[] }>;
@@ -21,16 +22,18 @@ export default async function DocsPage({ params: paramsPromise }: Props) {
     const slugPath = params.slug?.join('/') || '';
 
     try {
-        const content = await fetchGitHubMarkdown(`${slugPath}.md`);
+        const markdown = await fetchGitHubMarkdown(`${slugPath}.md`);
+        const content = await parseMarkdown(markdown);
 
         return (
             <div className="ms-[18.75rem] mt-[3.75rem] bg-white p-3 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-                <article className="prose dark:prose-invert">
-                    <pre>{content}</pre>
-                </article>
+                <div
+                    className="prose dark:prose-invert"
+                    dangerouslySetInnerHTML={{ __html: content }}
+                />
             </div>
         );
     } catch {
-        notFound();
+        return notFound();
     }
 }
